@@ -495,6 +495,14 @@ st.markdown(
         background: {C_PANEL}; border: 1px solid {C_BORDER}; border-radius: 16px; padding: 18px 20px;
     }}
 
+    /* Trim Streamlit's large default top padding above the page content */
+    div.block-container {{ padding-top: 1.6rem !important; padding-bottom: 2rem !important; }}
+    section[data-testid="stSidebar"] div.block-container {{ padding-top: 1.2rem !important; }}
+
+    /* Tighten the vertical gap Streamlit puts between stacked widgets/markdown
+       blocks in the sidebar -- cards had their own margin AND this gap, doubling up. */
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {{ gap: 0.5rem !important; }}
+
     .ndx-header {{
         background: linear-gradient(135deg, {ACCENT_START}, {ACCENT_END});
         padding: 22px 26px; border-radius: 16px; color: white; margin-bottom: 10px;
@@ -504,7 +512,7 @@ st.markdown(
 
     .ndx-card {{
         background: {C_PANEL}; border: 1px solid {C_BORDER}; border-radius: 14px;
-        padding: 15px 16px; margin-bottom: 14px;
+        padding: 15px 16px; margin-bottom: 0;
     }}
     .ndx-card-title {{ font-weight: 800; font-size: 15px; color: {C_TEXT}; margin-bottom: 8px;
         display: flex; align-items: center; gap: 7px; }}
