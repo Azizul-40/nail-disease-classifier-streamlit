@@ -478,10 +478,18 @@ st.markdown(
         border-radius: 14px !important; padding: 4px;
     }}
 
-    /* Rounded, card-style form inputs */
-    .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] > div {{
+    /* Rounded, card-style form inputs -- also kills Streamlit's default
+       red theme-color focus ring on selectboxes/text inputs, replacing
+       it with the app's own teal accent. */
+    .stTextInput input, .stNumberInput input,
+    div[data-baseweb="select"] > div, div[data-baseweb="select"] {{
         border-radius: 10px !important; background: {C_SUBTLE} !important;
         border: 1px solid {C_BORDER} !important; color: {C_TEXT} !important;
+        box-shadow: none !important;
+    }}
+    .stTextInput:focus-within input, .stNumberInput:focus-within input,
+    div[data-baseweb="select"]:focus-within > div, div[data-baseweb="select"]:focus-within {{
+        border-color: {ACCENT_START} !important; box-shadow: 0 0 0 1px {ACCENT_START} !important;
     }}
     .stForm {{
         background: {C_PANEL}; border: 1px solid {C_BORDER}; border-radius: 16px; padding: 18px 20px;
