@@ -99,7 +99,7 @@ T = {
         "missing_fields": "⚠️ অনুগ্রহ করে * চিহ্নিত সব তথ্য পূরণ করো।",
         "info_saved": "✓ তথ্য সংরক্ষিত হয়েছে", "locked_hint": "🔒 অনুগ্রহ করে প্রথমে 'রোগীর তথ্য' ট্যাবে তথ্য পূরণ করো",
         "upload_locked_warn": "⚠️ ছবি আপলোডের আগে 'রোগীর তথ্য' ট্যাব থেকে রোগীর তথ্য পূরণ করে জমা দাও।",
-        "select_model": "কোন dataset / model ব্যবহার করবে?",
+        "select_model": "কোন মডেল ব্যবহার করবে?",
         "compare_toggle": "⚖ দুই মডেল দিয়ে Compare করো",
         "upload_label": "নখের ছবি আপলোড করো (একাধিক ছবি দেওয়া যাবে)",
         "predict_btn": "সব ছবি Predict করো", "predicting": "Predict করা হচ্ছে...",
@@ -134,7 +134,7 @@ T = {
         "missing_fields": "⚠️ Please fill in all fields marked with *.",
         "info_saved": "✓ Info saved", "locked_hint": "🔒 Please fill patient info in the 'Patient Info' tab first",
         "upload_locked_warn": "⚠️ Fill in patient info in the 'Patient Info' tab before uploading an image.",
-        "select_model": "Which dataset / model do you want to use?",
+        "select_model": "Which model do you want to use?",
         "compare_toggle": "⚖ Compare both models",
         "upload_label": "Upload nail photo(s) (multiple allowed)",
         "predict_btn": "Predict all images", "predicting": "Predicting...",
@@ -189,11 +189,17 @@ def ensure_checkpoint(ds_name: str) -> Path:
         import gdown
 
         file_id = DRIVE_FILE_IDS[ds_name]
-        url = f"https://drive.google.com/uc?id={file_id}"
         with st.spinner(f"{ds_name} checkpoint downloading (~110MB, first run only)..."):
             try:
-                gdown.download(url, str(ckpt_path), quiet=False, fuzzy=True)
+                # id= avoids gdown's url-parsing/fuzzy-matching path entirely --
+                # that kwarg isn't accepted by every gdown release pinned on
+                # Streamlit Cloud, which previously crashed this download.
+                result = gdown.download(id=file_id, output=str(ckpt_path), quiet=False)
+                if not result or not ckpt_path.exists():
+                    raise RuntimeError("gdown returned no file -- the Drive file may not be shared publicly.")
             except Exception as exc:  # noqa: BLE001
+                if ckpt_path.exists():
+                    ckpt_path.unlink()  # don't leave a partial/corrupt checkpoint behind
                 st.error(
                     f"❌ Couldn't download the {ds_name} checkpoint from Google Drive "
                     f"({exc}). Make sure the file is shared as \"Anyone with the link — Viewer\"."
@@ -512,7 +518,7 @@ st.markdown(
 
     /* Trim Streamlit's large default top padding above the page content */
     div.block-container {{ padding-top: 1.6rem !important; padding-bottom: 2rem !important; }}
-    section[data-testid="stSidebar"] div.block-container {{ padding-top: 1.2rem !important; }}
+    section[data-testid="stSidebar"] div.block-container {{ padding-top: 0.25rem !important; }}
 
     /* Tighten the vertical gap Streamlit puts between stacked widgets/markdown
        blocks in the sidebar -- cards had their own margin AND this gap, doubling up. */
