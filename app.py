@@ -35,7 +35,6 @@ from model_defs import (
     LABEL_MAPS,
     LOCKED_SHA256,
     MODEL_BUILDERS,
-    MODEL_NAMES,
 )
 
 APP_DIR = Path(__file__).parent
@@ -53,6 +52,17 @@ DISEASE_TYPES_D1 = [
     "blue_finger", "clubbing", "pitting",
 ]
 DISEASE_TYPES_D2 = ["healthy", "onychomycosis", "psoriasis"]
+
+# Clean, user-facing model names -- internal checkpoint/step codenames
+# (STEP26, STEP23B, etc. -- see model_defs.MODEL_NAMES) are never shown in the UI.
+MODEL_UI_LABEL = {
+    "dataset_1": {"bn": "মডেল ১ — CBAM Attention (৬ ধরনের রোগ)", "en": "Model 1 — CBAM Attention (6 conditions)"},
+    "dataset_2": {"bn": "মডেল ২ — স্ট্যান্ডার্ড (৩ ধরনের রোগ)", "en": "Model 2 — Standard (3 conditions)"},
+}
+
+
+def model_label(ds_name: str) -> str:
+    return MODEL_UI_LABEL[ds_name][st.session_state.lang]
 
 # Short, general, non-diagnostic guidance per predicted class. General
 # wording only (see "About" tab -> Sources for where this kind of
@@ -105,9 +115,9 @@ T = {
         "archive_search": "রোগীর নাম দিয়ে খুঁজো...", "archive_empty": "আর্কাইভ এখনো খালি।",
         "archive_view": "রিপোর্ট দেখো / ডাউনলোড করো", "archive_remove": "✕ মুছে ফেলো",
         "about_heading": "মডেল কীভাবে কাজ করে",
-        "about_body": "দুটি লক করা ConvNeXt-Tiny মডেল ব্যবহার করা হয়েছে — একটি CBAM attention সহ (৬-ক্লাস), অন্যটি standalone (৩-ক্লাস)। প্রতিটি checkpoint SHA256 দিয়ে verify করে লোড হয়।",
+        "about_body": "দুটি লক করা ConvNeXt-Tiny মডেল ব্যবহার করা হয়েছে — একটি CBAM attention সহ (৬-ক্লাস, accuracy 96.61%), অন্যটি standalone (৩-ক্লাস, accuracy 94.88%)। প্রতিটি checkpoint লোড করার আগে SHA256 দিয়ে integrity verify করা হয়, যাতে ভুল বা পরিবর্তিত ফাইল চলে না আসে।",
         "dataset_heading": "ডেটাসেট",
-        "dataset_body": "নখের ছবি থেকে বিভিন্ন কন্ডিশন শনাক্ত করার জন্য ট্রেইন করা হয়েছে। মডেলগুলো STEP37-এ লক করা হয়েছে।",
+        "dataset_body": "নখের ছবি থেকে বিভিন্ন কন্ডিশন (যেমন healthy nail, psoriasis, onychomycosis, clubbing, pitting ইত্যাদি) শনাক্ত করার জন্য ট্রেইন করা হয়েছে। প্রোডাকশনে ব্যবহৃত মডেল দুটি ট্রেইনিং শেষে ফাইনাল হিসেবে লক করা — ভবিষ্যতে নতুন ডেটা দিয়ে আবার রি-ট্রেইন করা যাবে।",
         "source_heading": "তথ্যসূত্র",
         "source_body": "রিপোর্টে যুক্ত সাধারণ স্বাস্থ্য-পরামর্শ WHO-এর সাধারণ ত্বক-স্বাস্থ্য তথ্য এবং DermNet NZ (একটি স্বীকৃত ডার্মাটোলজি রেফারেন্স) থেকে অনুপ্রাণিত। এটি কোনো ব্যক্তিগত চিকিৎসা পরামর্শ না।",
         "source_link_who": "WHO ফ্যাক্ট শিট দেখো", "source_link_dermnet": "DermNet NZ দেখো",
@@ -142,9 +152,9 @@ T = {
         "archive_search": "Search by patient name...", "archive_empty": "Archive is empty.",
         "archive_view": "View / download report", "archive_remove": "✕ Remove",
         "about_heading": "How the models work",
-        "about_body": "Two locked ConvNeXt-Tiny models are used — one with CBAM attention (6-class), the other standalone (3-class). Each checkpoint is SHA256-verified before loading.",
+        "about_body": "Two locked ConvNeXt-Tiny models are used — one with CBAM attention (6-class, 96.61% accuracy), the other standalone (3-class, 94.88% accuracy). Every checkpoint is SHA256-verified before loading, so a wrong or modified file is never silently used.",
         "dataset_heading": "Dataset",
-        "dataset_body": "Trained to recognize several nail conditions. Both models were frozen at STEP37.",
+        "dataset_body": "Trained to recognize several nail conditions (healthy nail, psoriasis, onychomycosis, clubbing, pitting, and more). The models shipped in this app are the final, locked versions from training -- they can be retrained on new data in the future.",
         "source_heading": "Sources",
         "source_body": "The general health guidance added to reports is drawn from WHO's public skin-health information and DermNet NZ (a widely used dermatology reference). It is not personal medical advice.",
         "source_link_who": "View WHO fact sheets", "source_link_dermnet": "View DermNet NZ",
@@ -429,9 +439,51 @@ st.markdown(
     <style>
     .stApp {{ background-color: {C_BG}; }}
     section[data-testid="stSidebar"] {{ background-color: {C_PANEL}; }}
-    section[data-testid="stSidebar"] * {{ color: {C_TEXT}; }}
-    .stApp, .stApp p, .stApp label, .stApp span {{ color: {C_TEXT}; }}
-    div[data-testid="stMetricValue"] {{ color: {C_TEXT}; }}
+    section[data-testid="stSidebar"] * {{ color: {C_TEXT} !important; }}
+    .stApp, .stApp p, .stApp li, .stApp label, .stApp span,
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
+    div[data-testid="stMarkdownContainer"], div[data-testid="stMarkdownContainer"] * {{
+        color: {C_TEXT} !important;
+    }}
+    div[data-testid="stMetricValue"] {{ color: {C_TEXT} !important; }}
+
+    .stButton > button {{
+        background: {C_SUBTLE}; color: {C_TEXT} !important;
+        border: 1px solid {C_BORDER}; font-weight: 600;
+    }}
+    .stButton > button:hover {{ border-color: {ACCENT_START}; color: {ACCENT_START} !important; }}
+    .stButton > button p {{ color: inherit !important; }}
+
+    div[data-testid="stMarkdownContainer"] a, .ndx-card a {{ color: {ACCENT_START} !important; font-weight: 700; }}
+
+    /* Bold, underlined-when-active tabs, matching the approved design */
+    .stTabs [data-baseweb="tab-list"] {{ gap: 6px; border-bottom: 1px solid {C_BORDER}; }}
+    .stTabs [data-baseweb="tab"] {{
+        font-weight: 700; font-size: 14.5px; color: {C_MUTED} !important;
+        padding: 10px 4px; background: transparent;
+    }}
+    .stTabs [data-baseweb="tab"] p {{ color: inherit !important; font-weight: 700; }}
+    .stTabs [aria-selected="true"] {{
+        color: {ACCENT_START} !important;
+        border-bottom: 3px solid {ACCENT_START} !important;
+    }}
+    .stTabs [aria-selected="true"] p {{ color: {ACCENT_START} !important; text-decoration: underline; }}
+    .stTabs [data-baseweb="tab-highlight"] {{ background-color: {ACCENT_START} !important; }}
+
+    /* Card-style borders for st.container(border=True) blocks (result cards, archive rows) */
+    div[data-testid="stVerticalBlockBorderWrapper"] {{
+        background: {C_PANEL} !important; border: 1px solid {C_BORDER} !important;
+        border-radius: 14px !important; padding: 4px;
+    }}
+
+    /* Rounded, card-style form inputs */
+    .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] > div {{
+        border-radius: 10px !important; background: {C_SUBTLE} !important;
+        border: 1px solid {C_BORDER} !important; color: {C_TEXT} !important;
+    }}
+    .stForm {{
+        background: {C_PANEL}; border: 1px solid {C_BORDER}; border-radius: 16px; padding: 18px 20px;
+    }}
 
     .ndx-header {{
         background: linear-gradient(135deg, {ACCENT_START}, {ACCENT_END});
@@ -575,7 +627,7 @@ with tab_predict:
     if not st.session_state.patient_submitted:
         st.info(tr("locked_hint"))
 
-    ds_choice = st.selectbox(tr("select_model"), options=["dataset_1", "dataset_2"], format_func=lambda d: MODEL_NAMES[d])
+    ds_choice = st.selectbox(tr("select_model"), options=["dataset_1", "dataset_2"], format_func=model_label)
     st.session_state.compare = st.toggle(tr("compare_toggle"), value=st.session_state.compare)
 
     uploaded_files = st.file_uploader(
@@ -616,13 +668,13 @@ with tab_predict:
                 label, conf, _ = predict(model, class_names, img)
                 entry = {
                     "id": str(uuid.uuid4())[:8], "image": img, "label": label, "pct": conf * 100,
-                    "model": MODEL_NAMES[ds_choice].split(" -- ")[0], "low": conf < 0.5, "cam": None,
+                    "model": model_label(ds_choice), "low": conf < 0.5, "cam": None,
                 }
                 if second_model is not None:
                     other_ds = "dataset_2" if ds_choice == "dataset_1" else "dataset_1"
                     label2, conf2, _ = predict(second_model, second_class_names, img)
                     entry["second"] = {
-                        "label": label2, "pct": conf2 * 100, "model": MODEL_NAMES[other_ds].split(" -- ")[0],
+                        "label": label2, "pct": conf2 * 100, "model": model_label(other_ds),
                     }
                 results.append(entry)
         st.session_state.results = results
@@ -703,11 +755,31 @@ with tab_archive:
 
 # ---------------- About tab ----------------
 with tab_about:
-    st.markdown(f"#### {tr('about_heading')}")
-    st.write(tr("about_body"))
-    st.markdown(f"#### {tr('dataset_heading')}")
-    st.write(tr("dataset_body"))
-    st.markdown(f"#### {tr('source_heading')}")
-    st.write(tr("source_body"))
-    st.markdown(f"- [{tr('source_link_who')}](https://www.who.int/news-room/fact-sheets)")
-    st.markdown(f"- [{tr('source_link_dermnet')}](https://dermnetnz.org/)")
+    st.markdown(
+        f"""
+        <div class="ndx-card">
+          <div class="ndx-card-title">🧠 {tr('about_heading')}</div>
+          <hr>
+          <div class="ndx-disease-item">{tr('about_body')}</div>
+        </div>
+        <div class="ndx-card">
+          <div class="ndx-card-title">📊 {tr('dataset_heading')}</div>
+          <hr>
+          <div class="ndx-disease-item">{tr('dataset_body')}</div>
+        </div>
+        <div class="ndx-card">
+          <div class="ndx-card-title">🔗 {tr('source_heading')}</div>
+          <hr>
+          <div class="ndx-disease-item">{tr('source_body')}</div>
+          <div class="ndx-disease-item" style="margin-top:10px">
+            <span class="ndx-disease-dot">●</span>
+            <a href="https://www.who.int/news-room/fact-sheets" target="_blank" style="color:{ACCENT_START};font-weight:700;">{tr('source_link_who')}</a>
+          </div>
+          <div class="ndx-disease-item">
+            <span class="ndx-disease-dot">●</span>
+            <a href="https://dermnetnz.org/" target="_blank" style="color:{ACCENT_START};font-weight:700;">{tr('source_link_dermnet')}</a>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
