@@ -6,7 +6,7 @@ STEP37-locked models:
   - Dataset-2 (3 classes): STEP23B -- ConvNeXt-Tiny standalone
 
 Features: bilingual UI (bn/en), light/dark theme, patient-info gate before
-prediction, multi-image upload + camera capture, optional dual-model
+prediction, multi-image upload, optional dual-model
 comparison, Grad-CAM heatmap overlay, PDF prescription-style report
 download, and a local patient archive.
 
@@ -102,8 +102,6 @@ T = {
         "select_model": "কোন dataset / model ব্যবহার করবে?",
         "compare_toggle": "⚖ দুই মডেল দিয়ে Compare করো",
         "upload_label": "নখের ছবি আপলোড করো (একাধিক ছবি দেওয়া যাবে)",
-        "camera_label": "📷 অথবা ক্যামেরা দিয়ে ছবি তোলো",
-        "add_camera_btn": "ছবিটা যোগ করো",
         "predict_btn": "সব ছবি Predict করো", "predicting": "Predict করা হচ্ছে...",
         "loading_model": "মডেল লোড হচ্ছে...",
         "results_heading": "প্রতিটা ছবির ফলাফল", "prediction": "Prediction", "confidence": "Confidence",
@@ -139,8 +137,6 @@ T = {
         "select_model": "Which dataset / model do you want to use?",
         "compare_toggle": "⚖ Compare both models",
         "upload_label": "Upload nail photo(s) (multiple allowed)",
-        "camera_label": "📷 Or take a photo with your camera",
-        "add_camera_btn": "Add this photo",
         "predict_btn": "Predict all images", "predicting": "Predicting...",
         "loading_model": "Loading model...",
         "results_heading": "Result per image", "prediction": "Prediction", "confidence": "Confidence",
@@ -681,18 +677,15 @@ with tab_predict:
         tr("upload_label"), type=["jpg", "jpeg", "png"], accept_multiple_files=True,
         disabled=not st.session_state.patient_submitted,
     )
-    cam_photo = st.camera_input(tr("camera_label"), disabled=not st.session_state.patient_submitted)
 
-    if (uploaded_files or cam_photo is not None) and not st.session_state.patient_submitted:
+    if uploaded_files and not st.session_state.patient_submitted:
         st.warning(tr("upload_locked_warn"))
-        uploaded_files, cam_photo = None, None
+        uploaded_files = None
 
     pending_images = []
     if uploaded_files:
         for f in uploaded_files:
             pending_images.append(Image.open(f))
-    if cam_photo is not None:
-        pending_images.append(Image.open(cam_photo))
 
     predict_clicked = st.button(tr("predict_btn"), type="primary", use_container_width=True,
                                  disabled=not st.session_state.patient_submitted or not pending_images)
