@@ -19,6 +19,7 @@ import base64
 import hashlib
 import io
 import json
+import re
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -166,6 +167,29 @@ def pretty_label(label: str) -> str:
     """Display-only formatting: 'Healthy_Nail' -> 'Healthy Nail'. Never used for
     model/archive lookups -- those keep the raw class name."""
     return label.replace("_", " ").strip()
+
+
+# --------------------------------------------------------------------------
+# Patient-info field sanitization -- strips out-of-type characters live, so
+# a name field can't hold digits, a phone/NID field can't hold letters, etc.
+# --------------------------------------------------------------------------
+
+_DIGITS_RE = re.compile(r"\D")
+_NAME_RE = re.compile(r"[^A-Za-zঀ-৿\s.\-]")
+_ALNUM_RE = re.compile(r"[^A-Za-z0-9]")
+
+
+def _sanitized_text_input(label, key, strip_pattern, max_len=None):
+    """A text_input bound to st.session_state[key] that silently strips any
+    character not allowed by strip_pattern, re-running once if it had to."""
+    raw = st.text_input(label, key=key)
+    clean = strip_pattern.sub("", raw)
+    if max_len is not None:
+        clean = clean[:max_len]
+    if clean != raw:
+        st.session_state[key] = clean
+        st.rerun()
+    return clean
 
 
 # --------------------------------------------------------------------------
@@ -467,10 +491,10 @@ st.markdown(
     /* Bold, underlined-when-active tabs, matching the approved design */
     .stTabs [data-baseweb="tab-list"] {{ gap: 6px; border-bottom: 1px solid {C_BORDER}; }}
     .stTabs [data-baseweb="tab"] {{
-        font-weight: 700; font-size: 14.5px; color: {C_MUTED} !important;
-        padding: 10px 4px; background: transparent;
+        font-weight: 800; font-size: 17px; color: {C_MUTED} !important;
+        padding: 10px 6px; background: transparent;
     }}
-    .stTabs [data-baseweb="tab"] p {{ color: inherit !important; font-weight: 700; }}
+    .stTabs [data-baseweb="tab"] p {{ color: inherit !important; font-weight: 800; font-size: 17px; }}
     .stTabs [aria-selected="true"] {{
         color: {ACCENT_START} !important;
         border-bottom: 3px solid {ACCENT_START} !important;
@@ -682,19 +706,39 @@ with tab_patient:
     if not st.session_state.patient_submitted:
         st.markdown(f'<div class="ndx-pill">👤 {tr("patient_title")}</div>', unsafe_allow_html=True)
         st.caption(tr("patient_hint"))
-        with st.form("patient_form"):
-            col1, col2 = st.columns(2)
-            name = col1.text_input(tr("f_name"), value=(st.session_state.patient or {}).get("name", ""))
-            nid = col2.text_input(tr("f_nid"), value=(st.session_state.patient or {}).get("nid", ""))
-            mobile = col1.text_input(tr("f_mobile"), value=(st.session_state.patient or {}).get("mobile", ""))
-            passport = col2.text_input(tr("f_passport"), value=(st.session_state.patient or {}).get("passport", ""))
-            age = col1.text_input(tr("f_age"), value=(st.session_state.patient or {}).get("age", ""))
-            sex_options = [tr("sex_m"), tr("sex_f"), tr("sex_o")]
-            sex = col2.selectbox(tr("f_sex"), options=sex_options)
-            doctor = st.text_input(tr("f_doctor"), value=(st.session_state.patient or {}).get("doctor", ""))
 
-            submitted = st.form_submit_button(tr("submit_info"), type="primary", use_container_width=True)
-            if submitted:
+        # Plain widgets (no st.form) so each keystroke can be sanitized live --
+        # a form batches input and shows Streamlit's own "Press Enter to
+        # submit" / dirty-border hint, which we don't want here.
+        pf_defaults = st.session_state.patient or {}
+        for k, v in [
+            ("pf_name", pf_defaults.get("name", "")), ("pf_nid", pf_defaults.get("nid", "")),
+            ("pf_mobile", pf_defaults.get("mobile", "")), ("pf_passport", pf_defaults.get("passport", "")),
+            ("pf_age", pf_defaults.get("age", "")), ("pf_doctor", pf_defaults.get("doctor", "")),
+        ]:
+            if k not in st.session_state:
+                st.session_state[k] = v
+        if "pf_sex" not in st.session_state:
+            st.session_state.pf_sex = pf_defaults.get("sex", tr("sex_m"))
+
+        with st.container(border=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                name = _sanitized_text_input(tr("f_name"), "pf_name", _NAME_RE, max_len=80)
+            with col2:
+                nid = _sanitized_text_input(tr("f_nid"), "pf_nid", _DIGITS_RE, max_len=20)
+            with col1:
+                mobile = _sanitized_text_input(tr("f_mobile"), "pf_mobile", _DIGITS_RE, max_len=15)
+            with col2:
+                passport = _sanitized_text_input(tr("f_passport"), "pf_passport", _ALNUM_RE, max_len=15)
+            with col1:
+                age = _sanitized_text_input(tr("f_age"), "pf_age", _DIGITS_RE, max_len=3)
+            with col2:
+                sex_options = [tr("sex_m"), tr("sex_f"), tr("sex_o")]
+                sex = st.selectbox(tr("f_sex"), options=sex_options, key="pf_sex")
+            doctor = _sanitized_text_input(tr("f_doctor"), "pf_doctor", _NAME_RE, max_len=80)
+
+            if st.button(tr("submit_info"), type="primary", use_container_width=True):
                 required_ok = all([name.strip(), nid.strip(), mobile.strip(), age.strip(), doctor.strip()])
                 if not required_ok:
                     st.error(tr("missing_fields"))
