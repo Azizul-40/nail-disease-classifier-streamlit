@@ -166,6 +166,12 @@ def tr(key: str) -> str:
     return T[st.session_state.lang][key]
 
 
+def pretty_label(label: str) -> str:
+    """Display-only formatting: 'Healthy_Nail' -> 'Healthy Nail'. Never used for
+    model/archive lookups -- those keep the raw class name."""
+    return label.replace("_", " ").strip()
+
+
 # --------------------------------------------------------------------------
 # Model loading / inference
 # --------------------------------------------------------------------------
@@ -319,7 +325,7 @@ def save_archive(records):
 
 def archive_patient(patient: dict, results: list):
     records = st.session_state.archive
-    summary = ", ".join(f"{r['label']} ({r['pct']:.0f}%)" for r in results)
+    summary = ", ".join(f"{pretty_label(r['label'])} ({r['pct']:.0f}%)" for r in results)
     records.insert(
         0,
         {
@@ -370,12 +376,12 @@ def build_pdf_report(patient: dict, results: list, images: list) -> bytes:
     pdf.cell(0, 8, "Predictions", ln=True)
     for idx, (res, img) in enumerate(zip(results, images), start=1):
         pdf.set_font("Helvetica", "B", 10)
-        pdf.cell(0, 7, f"Image {idx}: {res['label']}  ({res['pct']:.1f}%)  [{res['model']}]", ln=True)
+        pdf.cell(0, 7, f"Image {idx}: {pretty_label(res['label'])}  ({res['pct']:.1f}%)  [{res['model']}]", ln=True)
         if res.get("second"):
             pdf.set_font("Helvetica", "", 9)
             pdf.cell(
                 0, 6,
-                f"   Compare ({res['second']['model']}): {res['second']['label']} ({res['second']['pct']:.1f}%)",
+                f"   Compare ({res['second']['model']}): {pretty_label(res['second']['label'])} ({res['second']['pct']:.1f}%)",
                 ln=True,
             )
         try:
@@ -515,6 +521,47 @@ st.markdown(
     .stButton > button[kind="primary"] {{
         background: linear-gradient(135deg, {ACCENT_START}, {ACCENT_END}); border: none;
     }}
+
+    /* Kill the browser's harsh focus-ring rectangle on tabs/buttons -- design has no box outline */
+    .stTabs button:focus, .stTabs button:focus-visible,
+    .stButton > button:focus, .stButton > button:focus-visible {{
+        outline: none !important; box-shadow: none !important;
+    }}
+
+    /* Section header pill (e.g. "Patient Info" title), matching the approved design */
+    .ndx-pill {{
+        display: inline-block; background: linear-gradient(135deg, {ACCENT_START}, {ACCENT_END});
+        color: white !important; font-weight: 800; font-size: 14px;
+        padding: 9px 22px; border-radius: 999px; margin-bottom: 16px;
+    }}
+    .ndx-pill * {{ color: white !important; }}
+
+    /* Colored panel behind any uploaded/result thumbnail image */
+    div[data-testid="column"]:has(img) {{
+        background: {C_SUBTLE}; border-radius: 12px; padding: 10px;
+    }}
+    .ndx-badge-num {{
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 26px; height: 26px; border-radius: 50%;
+        background: linear-gradient(135deg, {ACCENT_START}, {ACCENT_END});
+        color: white !important; font-weight: 800; font-size: 12.5px; margin-bottom: 6px;
+    }}
+
+    /* Archive row: circular initial avatar + colored result pill */
+    .ndx-avatar {{
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 34px; height: 34px; border-radius: 50%; background: {C_SUBTLE};
+        border: 1px solid {C_BORDER}; color: {ACCENT_START} !important; font-weight: 800;
+        font-size: 14px; margin-right: 10px; flex: none;
+    }}
+    .ndx-archive-row {{ display: flex; align-items: center; }}
+    .ndx-archive-name {{ font-weight: 700; color: {C_TEXT}; }}
+    .ndx-archive-meta {{ font-size: 12px; color: {C_MUTED}; }}
+    .ndx-result-pill {{
+        font-weight: 700; font-size: 12.5px; color: {ACCENT_START} !important;
+        background: {C_SUBTLE}; border: 1px solid {C_BORDER}; border-radius: 999px;
+        padding: 4px 12px; display: inline-block;
+    }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -588,7 +635,7 @@ tab_predict, tab_patient, tab_download, tab_archive, tab_about = st.tabs(
 # ---------------- Patient Info tab ----------------
 with tab_patient:
     if not st.session_state.patient_submitted:
-        st.markdown(f"#### {tr('patient_title')}")
+        st.markdown(f'<div class="ndx-pill">👤 {tr("patient_title")}</div>', unsafe_allow_html=True)
         st.caption(tr("patient_hint"))
         with st.form("patient_form"):
             col1, col2 = st.columns(2)
@@ -689,15 +736,16 @@ with tab_predict:
         for i, r in enumerate(st.session_state.results, start=1):
             with st.container(border=True):
                 col_img, col_body = st.columns([1, 2])
-                col_img.image(r["image"], caption=f"#{i}", use_container_width=True)
+                col_img.markdown(f'<div class="ndx-badge-num">{i}</div>', unsafe_allow_html=True)
+                col_img.image(r["image"], use_container_width=True)
                 with col_body:
                     badge = f" :red[{tr('low_conf')}]" if r["low"] else ""
                     st.markdown(f"🔎 {tr('prediction')} ({r['model']}){badge}")
-                    st.markdown(f"### {r['label']}")
+                    st.markdown(f"### {pretty_label(r['label'])}")
                     st.progress(min(r["pct"] / 100, 1.0), text=f"{r['pct']:.1f}%")
                     if r.get("second"):
                         st.markdown(f"🔎 {tr('prediction')} ({r['second']['model']})")
-                        st.markdown(f"**{r['second']['label']}** — {r['second']['pct']:.1f}%")
+                        st.markdown(f"**{pretty_label(r['second']['label'])}** — {r['second']['pct']:.1f}%")
                 hm_key = f"hm_{r['id']}"
                 if st.toggle(tr("heatmap_toggle"), key=hm_key):
                     ds_for_cam = st.session_state.get("results_ds_choice", "dataset_1")
@@ -721,7 +769,7 @@ with tab_download:
         p = st.session_state.patient or {}
         st.write(f"**{tr('f_name')[:-2]}:** {p.get('name', '-')}  ·  **{tr('f_doctor')[:-2]}:** {p.get('doctor', '-')}")
         for i, r in enumerate(st.session_state.results, start=1):
-            st.write(f"{i}. **{r['label']}** — {r['pct']:.1f}% ({r['model']})")
+            st.write(f"{i}. **{pretty_label(r['label'])}** — {r['pct']:.1f}% ({r['model']})")
         pdf_bytes = build_pdf_report(p, st.session_state.results, [r["image"] for r in st.session_state.results])
         st.download_button(
             tr("download_btn"), data=pdf_bytes,
@@ -742,15 +790,23 @@ with tab_archive:
         for rec in records:
             with st.container(border=True):
                 c1, c2, c3 = st.columns([3, 2, 1])
-                c1.markdown(f"**{rec['name']}**  \n{rec['meta']} · {rec['date']}")
-                c2.caption(rec["result_summary"])
+                initial = (rec["name"][:1] or "?").upper()
+                c1.markdown(
+                    f"""<div class="ndx-archive-row">
+                        <span class="ndx-avatar">{initial}</span>
+                        <div><div class="ndx-archive-name">{rec['name']}</div>
+                        <div class="ndx-archive-meta">{rec['meta']} · {rec['date']}</div></div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+                c2.markdown(f'<span class="ndx-result-pill">{rec["result_summary"]}</span>', unsafe_allow_html=True)
                 if c3.button(tr("archive_remove"), key=f"arch_rm_{rec['id']}"):
                     st.session_state.archive = [r for r in st.session_state.archive if r["id"] != rec["id"]]
                     save_archive(st.session_state.archive)
                     st.rerun()
                 with st.expander(tr("archive_view")):
                     for res in rec["results"]:
-                        st.write(f"- {res['label']} — {res['pct']:.1f}% ({res['model']})")
+                        st.write(f"- {pretty_label(res['label'])} — {res['pct']:.1f}% ({res['model']})")
                     st.caption(f"Doctor: {rec.get('doctor', '-')}")
 
 # ---------------- About tab ----------------
