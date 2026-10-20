@@ -523,8 +523,20 @@ st.markdown(
     .ndx-disclaimer-body {{ font-size: 12px; line-height: 1.6; color: {C_MUTED}; }}
 
     .stButton > button[kind="primary"] {{
-        background: linear-gradient(135deg, {ACCENT_START}, {ACCENT_END}); border: none;
+        background: linear-gradient(135deg, {ACCENT_START}, {ACCENT_END}) !important;
+        border: none !important; color: #FFFFFF !important;
     }}
+    .stButton > button[kind="primary"] p,
+    .stButton > button[kind="primary"] * {{ color: #FFFFFF !important; }}
+    .stButton > button[kind="primary"]:hover {{ color: #FFFFFF !important; opacity: 0.92; }}
+    /* st.form_submit_button renders as a plain (non-"primary") button when
+       type="primary" is set in older Streamlit builds -- catch that too. */
+    div[data-testid="stFormSubmitButton"] > button {{
+        background: linear-gradient(135deg, {ACCENT_START}, {ACCENT_END}) !important;
+        border: none !important; color: #FFFFFF !important;
+    }}
+    div[data-testid="stFormSubmitButton"] > button p,
+    div[data-testid="stFormSubmitButton"] > button * {{ color: #FFFFFF !important; }}
 
     /* Kill the browser's harsh focus-ring rectangle on tabs/buttons -- design has no box outline */
     .stTabs button:focus, .stTabs button:focus-visible,
