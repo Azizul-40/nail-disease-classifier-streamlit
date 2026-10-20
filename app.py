@@ -495,6 +495,21 @@ st.markdown(
         background: {C_PANEL}; border: 1px solid {C_BORDER}; border-radius: 16px; padding: 18px 20px;
     }}
 
+    /* File uploader (incl. its disabled "fill patient info first" state) --
+       force readable colors instead of relying on Streamlit's low-opacity
+       disabled look, which goes invisible against our custom backgrounds. */
+    [data-testid="stFileUploaderDropzone"] {{
+        background: {C_SUBTLE} !important; border: 1px dashed {C_BORDER} !important;
+        border-radius: 12px !important; opacity: 1 !important;
+    }}
+    [data-testid="stFileUploaderDropzone"] *,
+    [data-testid="stFileUploaderDropzone"] button {{ color: {C_TEXT} !important; opacity: 1 !important; }}
+    [data-testid="stFileUploaderDropzone"] button {{
+        background: {C_PANEL} !important; border: 1px solid {C_BORDER} !important;
+    }}
+    [data-testid="stFileUploaderDropzone"] small {{ color: {C_MUTED} !important; }}
+    .stFileUploader label, .stFileUploader label p {{ color: {C_TEXT} !important; opacity: 1 !important; }}
+
     /* Trim Streamlit's large default top padding above the page content */
     div.block-container {{ padding-top: 1.6rem !important; padding-bottom: 2rem !important; }}
     section[data-testid="stSidebar"] div.block-container {{ padding-top: 1.2rem !important; }}
