@@ -420,25 +420,50 @@ for key, val in defaults.items():
 
 st.set_page_config(page_title="NailDx AI", page_icon="🩺", layout="wide")
 
-DARK_CSS = """
-<style>
-.stApp { background-color: #101018; color: #F1F1F6; }
-section[data-testid="stSidebar"] { background-color: #191922; }
-div[data-testid="stMetricValue"] { color: #F1F1F6; }
-</style>
-"""
-if st.session_state.theme == "dark":
-    st.markdown(DARK_CSS, unsafe_allow_html=True)
+DARK = st.session_state.theme == "dark"
+C_BG = "#101018" if DARK else "#F7F7FB"
+C_PANEL = "#191922" if DARK else "#FFFFFF"
+C_SUBTLE = "#20202B" if DARK else "#F6F5FB"
+C_BORDER = "#2B2B38" if DARK else "#E8E7F2"
+C_TEXT = "#F1F1F6" if DARK else "#1F2430"
+C_MUTED = "#9A9AAC" if DARK else "#6B7280"
 
 st.markdown(
     f"""
     <style>
+    .stApp {{ background-color: {C_BG}; }}
+    section[data-testid="stSidebar"] {{ background-color: {C_PANEL}; }}
+    section[data-testid="stSidebar"] * {{ color: {C_TEXT}; }}
+    .stApp, .stApp p, .stApp label, .stApp span {{ color: {C_TEXT}; }}
+    div[data-testid="stMetricValue"] {{ color: {C_TEXT}; }}
+
     .ndx-header {{
         background: linear-gradient(135deg, {ACCENT_START}, {ACCENT_END});
-        padding: 22px 26px; border-radius: 16px; color: white; margin-bottom: 8px;
+        padding: 22px 26px; border-radius: 16px; color: white; margin-bottom: 10px;
     }}
-    .ndx-header h1 {{ margin: 0; font-size: 22px; }}
-    .ndx-header p {{ margin: 4px 0 0; opacity: .9; font-size: 13.5px; }}
+    .ndx-header h1 {{ margin: 0; font-size: 23px; font-weight: 800; color: white !important; }}
+    .ndx-header p {{ margin: 4px 0 0; opacity: .92; font-size: 13.5px; color: white !important; }}
+
+    .ndx-card {{
+        background: {C_PANEL}; border: 1px solid {C_BORDER}; border-radius: 14px;
+        padding: 15px 16px; margin-bottom: 14px;
+    }}
+    .ndx-card-title {{ font-weight: 800; font-size: 15px; color: {C_TEXT}; margin-bottom: 8px;
+        display: flex; align-items: center; gap: 7px; }}
+    .ndx-card hr {{ border: none; border-top: 1px solid {C_BORDER}; margin: 6px 0 10px; }}
+    .ndx-model-row {{ display: flex; align-items: center; gap: 8px; font-weight: 700;
+        font-size: 13.5px; color: {C_TEXT}; margin-bottom: 2px; }}
+    .ndx-dot {{ width: 8px; height: 8px; border-radius: 50%; flex: none; }}
+    .ndx-model-sub {{ font-size: 12px; color: {C_MUTED}; margin: 0 0 10px 16px; line-height: 1.6; }}
+    .ndx-disease-item {{ font-size: 13px; color: {C_MUTED}; margin: 4px 0 4px 2px; }}
+    .ndx-disease-dot {{ color: {ACCENT_START}; margin-right: 7px; }}
+    .ndx-disclaimer {{
+        background: {C_SUBTLE}; border: 1px solid {C_BORDER}; border-left: 3px solid {ACCENT_START};
+        border-radius: 12px; padding: 13px 14px;
+    }}
+    .ndx-disclaimer-title {{ font-weight: 800; font-size: 13px; color: {C_TEXT}; margin-bottom: 4px; }}
+    .ndx-disclaimer-body {{ font-size: 12px; line-height: 1.6; color: {C_MUTED}; }}
+
     .stButton > button[kind="primary"] {{
         background: linear-gradient(135deg, {ACCENT_START}, {ACCENT_END}); border: none;
     }}
@@ -457,7 +482,7 @@ st.markdown(
 # --------------------------------------------------------------------------
 
 with st.sidebar:
-    st.markdown(f"### 🩺 NailDx AI")
+    st.markdown("## 🩺 NailDx AI")
     c1, c2 = st.columns(2)
     if c1.button(tr("lang_btn"), use_container_width=True):
         st.session_state.lang = "en" if st.session_state.lang == "bn" else "bn"
@@ -467,16 +492,41 @@ with st.sidebar:
         st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
         st.rerun()
 
-    st.markdown(f"**{tr('our_models')}**")
-    st.caption(f"🔹 Dataset-1 — {MODEL_NAMES['dataset_1']}\n\nAccuracy 96.61%")
-    st.caption(f"🔹 Dataset-2 — {MODEL_NAMES['dataset_2']}\n\nAccuracy 94.88%")
+    st.markdown(
+        f"""
+        <div class="ndx-card">
+          <div class="ndx-card-title">🧬 {tr('our_models')}</div>
+          <hr>
+          <div class="ndx-model-row"><span class="ndx-dot" style="background:{ACCENT_START}"></span>Dataset-1</div>
+          <div class="ndx-model-sub">ConvNeXt-Tiny + CBAM — 6 classes<br>Accuracy 96.61%</div>
+          <div class="ndx-model-row"><span class="ndx-dot" style="background:{ACCENT_END}"></span>Dataset-2</div>
+          <div class="ndx-model-sub">ConvNeXt-Tiny standalone — 3 classes<br>Accuracy 94.88%</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.markdown(f"**{tr('disease_types')}**")
-    for d in DISEASE_TYPES_D1:
-        st.caption(f"• {d}")
+    disease_html = "".join(f'<div class="ndx-disease-item"><span class="ndx-disease-dot">●</span>{d}</div>' for d in DISEASE_TYPES_D1)
+    st.markdown(
+        f"""
+        <div class="ndx-card">
+          <div class="ndx-card-title">🔬 {tr('disease_types')} (6 types)</div>
+          <hr>
+          {disease_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.divider()
-    st.warning(f"**{tr('disclaimer_title')}**\n\n{tr('disclaimer_body')}")
+    st.markdown(
+        f"""
+        <div class="ndx-disclaimer">
+          <div class="ndx-disclaimer-title">⚠ {tr('disclaimer_title')}</div>
+          <div class="ndx-disclaimer-body">{tr('disclaimer_body')}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # --------------------------------------------------------------------------
 # Tabs
