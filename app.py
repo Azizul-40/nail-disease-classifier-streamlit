@@ -77,8 +77,6 @@ ADVISORY = {
 T = {
     "bn": {
         "page_title": "নখের রোগ শনাক্তকরণ", "page_sub": "ConvNeXt-Tiny ভিত্তিক গবেষণা প্রোটোটাইপ — ডায়াগনস্টিক টুল না।",
-        "tab_predict": "Prediction", "tab_patient": "রোগীর তথ্য", "tab_download": "ডাউনলোড",
-        "tab_archive": "আর্কাইভ", "tab_about": "মডেল সম্পর্কে",
         "settings": "সেটিংস", "lang_btn": "English", "theme_btn_dark": "🌙 Dark", "theme_btn_light": "☀️ Light",
         "our_models": "আমাদের মডেল", "disease_types": "শনাক্তযোগ্য রোগ",
         "disclaimer_title": "গবেষণা প্রকল্প",
@@ -116,8 +114,6 @@ T = {
     },
     "en": {
         "page_title": "Nail Disease Classifier", "page_sub": "ConvNeXt-Tiny based research prototype — not a diagnostic tool.",
-        "tab_predict": "Prediction", "tab_patient": "Patient Info", "tab_download": "Download",
-        "tab_archive": "Archive", "tab_about": "About the models",
         "settings": "Settings", "lang_btn": "বাংলা", "theme_btn_dark": "🌙 Dark", "theme_btn_light": "☀️ Light",
         "our_models": "Our Models", "disease_types": "Detectable Diseases",
         "disclaimer_title": "Research project",
@@ -532,8 +528,9 @@ with st.sidebar:
 # Tabs
 # --------------------------------------------------------------------------
 
+# Tab labels stay fixed in English regardless of the language toggle.
 tab_predict, tab_patient, tab_download, tab_archive, tab_about = st.tabs(
-    [tr("tab_predict"), tr("tab_patient"), tr("tab_download"), tr("tab_archive"), tr("tab_about")]
+    ["Prediction", "Patient Info", "Download", "Archive", "About the models"]
 )
 
 # ---------------- Patient Info tab ----------------
